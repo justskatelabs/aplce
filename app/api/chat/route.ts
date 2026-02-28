@@ -1,7 +1,5 @@
-import { OpenAI } from "openai";
-import { NextRequest } from "next/server";
-
-const openai = new OpenAI({ apiKey: process.env.LLM_API_KEY });
+import { streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
 
 const SYSTEM_PROMPT = `You are APLE's expert appliance diagnostic assistant. Your goal is to help customers identify their appliance problem and prepare a repair quote.
 
@@ -18,34 +16,16 @@ complexity is 1-10 (1=simple, 10=complex rebuild).
 estimated_parts is USD cost of parts only.
 Do NOT output the JSON until you have: appliance type, brand, model/age, and at least 2 symptoms.`;
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  const stream = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    stream: true,
-    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
-    max_tokens: 400,
+  const result = streamText({
+    model: openai("gpt-4o-mini"),
+    system: SYSTEM_PROMPT,
+    messages,
+    maxTokens: 400,
     temperature: 0.4,
   });
 
-  const encoder = new TextEncoder();
-  const readable = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of stream) {
-        const text = chunk.choices[0]?.delta?.content ?? "";
-        if (text) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-      }
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-    },
-  });
-
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  return result.toDataStreamResponse();
 }
