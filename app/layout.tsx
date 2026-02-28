@@ -9,13 +9,19 @@ export const metadata: Metadata = {
   description: "Connect appliance owners with qualified repair technicians",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="bg-background">
       <body className={inter.className}>
         <div className="min-h-screen bg-background text-foreground">
           {children}
