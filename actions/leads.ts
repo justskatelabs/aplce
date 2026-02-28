@@ -80,12 +80,12 @@ export async function submitLead(
     const currentMetrics = (bestCompany.metrics as Record<string, unknown>) ?? {};
     const leadsThisWeek = (currentMetrics.leads_this_week as number ?? 0) + 1;
     const updatedMetrics = { ...currentMetrics, leads_this_week: leadsThisWeek };
-
+const currentMetrics = (bestCompany.metrics as Record<string, unknown>) ?? {};
+    const leadsThisWeek = ((currentMetrics.leads_this_week as number) ?? 0) + 1;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from("companies") as any)
-      .update({ metrics: updatedMetrics })
+      .update({ metrics: { ...currentMetrics, leads_this_week: leadsThisWeek } })
       .eq("id", bestCompany.id);
-  }
 
   return { success: true, leadId: (lead as any).id };
 }
