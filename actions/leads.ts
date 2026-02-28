@@ -1,10 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createServerSupabaseClient } from "@/lib/supabase";
 import { calculateEstimate } from "@/lib/estimate";
 import { findBestCompany } from "@/lib/matching";
-import type { DiagnosisResult, Database } from "@/lib/database.types";
+import type { DiagnosisResult } from "@/lib/database.types";
 
 const LeadFormSchema = z.object({
   full_name: z.string().min(2),
@@ -26,7 +26,9 @@ export async function submitLead(
   formData: FormData
 ): Promise<LeadFormState> {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated" };
 
   const raw = {
@@ -46,99 +48,73 @@ export async function submitLead(
   const { full_name, phone, email, zip, address, diagnosis } = parsed.data;
   const estimate = calculateEstimate(diagnosis);
 
-  // Find matching company
   const { data: companies } = await supabase.from("companies").select("*");
   const bestCompany = companies
     ? findBestCompany(companies as any, zip, diagnosis.brand, diagnosis.symptoms)
     : null;
 
-  const leadData: Database["public"]["Tables"]["leads"]["Insert"] = {
-    customer_id: user.id,
-    customer_name: full_name,
-    customer_phone: phone,
-    customer_email: email,
-    customer_zip: zip,
-    customer_address: address,
-    diagnosis,
-    estimate,
-    status: bestCompany ? "assigned" : "pending",
-    assigned_company_id: bestCompany?.id ?? null,
-  };
-
   const { data: lead, error } = await supabase
     .from("leads")
-    .insert(leadData as any)
-    .select()
-    .single() as any;
+    .insert({
+      customer_id: user.id,
+      customer_name: full_name,
+      customer_phone: phone,
+      customer_email: email,
+      customer_zip: zip,
+      customer_address: address,
+      diagnosis,
+      estimate,
+      status: bestCompany ? "assigned" : "pending",
+      assigned_company_id: bestCompany?.id ?? null,
+    })
+    .select("id")
+    .single();
 
-  if (error || !lead) {
-    return { success: false, error: error?.message ?? "Failed to submit lead" };
-  }
+  if (error) return { success: false, error: error.message };
 
-  // Update company metrics if assigned
   if (bestCompany) {
     const currentMetrics = (bestCompany.metrics as Record<string, unknown>) ?? {};
-    const leadsThisWeek = (currentMetrics.leads_this_week as number ?? 0) + 1;
-    const updatedMetrics = { ...currentMetrics, leads_this_week: leadsThisWeek };
-const currentMetrics = (bestCompany.metrics as Record<string, unknown>) ?? {};
     const leadsThisWeek = ((currentMetrics.leads_this_week as number) ?? 0) + 1;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from("companies") as any)
       .update({ metrics: { ...currentMetrics, leads_this_week: leadsThisWeek } })
       .eq("id", bestCompany.id);
+  }
 
   return { success: true, leadId: (lead as any).id };
 }
 
-export type LeadActionState = {
-  success: boolean;
-  error?: string;
-};
+const UpdateLeadSchema = z.object({
+  leadId: z.string().uuid(),
+  status: z.enum(["accepted", "rejected"]),
+});
 
-export async function acceptLead(leadId: string): Promise<LeadActionState> {
+export async function updateLeadStatus(
+  leadId: string,
+  status: "accepted" | "rejected"
+): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
 
-  // Verify company ownership
+  const parsed = UpdateLeadSchema.safeParse({ leadId, status });
+  if (!parsed.success) return { error: "Invalid input" };
+
   const { data: company } = await supabase
     .from("companies")
     .select("id")
     .eq("user_id", user.id)
     .single();
 
-  if (!company) return { success: false, error: "Company not found" };
+  if (!company) return { error: "Company not found" };
 
   const { error } = await supabase
     .from("leads")
-    .update({ status: "accepted" })
+    .update({ status })
     .eq("id", leadId)
     .eq("assigned_company_id", company.id);
 
-  if (error) return { success: false, error: error.message };
-  return { success: true };
-}
-
-export async function rejectLead(leadId: string): Promise<LeadActionState> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated" };
-
-  // Verify company ownership
-  const { data: company } = await supabase
-    .from("companies")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!company) return { success: false, error: "Company not found" };
-
-  const { error } = await supabase
-    .from("leads")
-    .update({ status: "rejected" })
-    .eq("id", leadId)
-    .eq("assigned_company_id", company.id);
-
-  if (error) return { success: false, error: error.message };
-  return { success: true };
+  return { error: error?.message };
 }
