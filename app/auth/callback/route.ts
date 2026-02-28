@@ -1,11 +1,9 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 
-export default async function CallbackRoute(props: {
-  searchParams: Promise<{ code?: string }>;
-}) {
-  const searchParams = await props.searchParams;
-  const code = searchParams.code;
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get("code");
 
   if (code) {
     const supabase = await createServerSupabaseClient();
