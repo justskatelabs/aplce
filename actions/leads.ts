@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { calculateEstimate } from "@/lib/estimate";
 import { findBestCompany } from "@/lib/matching";
-import type { DiagnosisResult } from "@/lib/database.types";
+import type { DiagnosisResult, Database } from "@/lib/database.types";
 
 const LeadFormSchema = z.object({
   full_name: z.string().min(2),
@@ -52,20 +52,22 @@ export async function submitLead(
     ? findBestCompany(companies as any, zip, diagnosis.brand, diagnosis.symptoms)
     : null;
 
+  const leadData: Database["public"]["Tables"]["leads"]["Insert"] = {
+    customer_id: user.id,
+    customer_name: full_name,
+    customer_phone: phone,
+    customer_email: email,
+    customer_zip: zip,
+    customer_address: address,
+    diagnosis,
+    estimate,
+    status: bestCompany ? "assigned" : "pending",
+    assigned_company_id: bestCompany?.id ?? null,
+  };
+
   const { data: lead, error } = await supabase
     .from("leads")
-    .insert({
-      customer_id: user.id,
-      customer_name: full_name,
-      customer_phone: phone,
-      customer_email: email,
-      customer_zip: zip,
-      customer_address: address,
-      diagnosis,
-      estimate,
-      status: bestCompany ? "assigned" : "pending",
-      assigned_company_id: bestCompany?.id ?? null,
-    })
+    .insert(leadData)
     .select()
     .single();
 
