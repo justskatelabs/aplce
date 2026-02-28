@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export default async function Home() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Landing page - no auth check needed for rendering
+  const user = null; // Will be handled client-side after hydration if needed
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -12,29 +11,12 @@ export default async function Home() {
         <nav className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">APLE</h1>
           <div className="flex gap-4">
-            {user ? (
-              <>
-                <Link href="/diagnose" className="text-sm text-foreground hover:text-primary">
-                  Start Diagnosis
-                </Link>
-                <Link href="/dashboard" className="text-sm text-foreground hover:text-primary">
-                  Dashboard
-                </Link>
-                <form
-                  action={async () => {
-                    "use server";
-                    const supabase = await createServerSupabaseClient();
-                    await supabase.auth.signOut();
-                  }}
-                >
-                  <button className="text-sm text-foreground hover:text-primary">Sign Out</button>
-                </form>
-              </>
-            ) : (
-              <Link href="/auth/login" className="text-sm text-foreground hover:text-primary">
-                Sign In
-              </Link>
-            )}
+            <Link href="/diagnose" className="text-sm text-foreground hover:text-primary">
+              Start Diagnosis
+            </Link>
+            <Link href="/auth/login" className="text-sm text-foreground hover:text-primary">
+              Sign In
+            </Link>
           </div>
         </nav>
       </header>
@@ -48,19 +30,19 @@ export default async function Home() {
           APLE connects appliance owners with qualified repair technicians in their area. Get diagnosed, estimate, and connected with a pro in minutes.
         </p>
 
-        {user ? (
-          <Link
-            href="/diagnose"
-            className="inline-block px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90"
-          >
-            Start Repair Diagnosis
-          </Link>
-        ) : (
+        {!user ? (
           <Link
             href="/auth/login"
             className="inline-block px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90"
           >
             Get Started
+          </Link>
+        ) : (
+          <Link
+            href="/diagnose"
+            className="inline-block px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90"
+          >
+            Start Repair Diagnosis
           </Link>
         )}
       </section>
