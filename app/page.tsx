@@ -1,9 +1,6 @@
 import Link from "next/link";
 
-export default async function Home() {
-  // Landing page - no auth check needed for rendering
-  const user = null; // Will be handled client-side after hydration if needed
-
+export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
@@ -30,7 +27,7 @@ export default async function Home() {
           APLE connects appliance owners with qualified repair technicians in their area. Get diagnosed, estimate, and connected with a pro in minutes.
         </p>
 
-        {!user ? (
+        {true ? (
           <Link
             href="/auth/login"
             className="inline-block px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90"
