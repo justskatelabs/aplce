@@ -67,7 +67,7 @@ export async function submitLead(
 
   const { data: lead, error } = await supabase
     .from("leads")
-    .insert(leadData)
+    .insert(leadData as any)
     .select()
     .single();
 
