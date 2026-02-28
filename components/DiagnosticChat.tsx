@@ -100,13 +100,13 @@ export function DiagnosticChat({ onDiagnosisComplete }: DiagnosticChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background border rounded-lg shadow-sm">
+    <div className="flex flex-col h-full bg-background border rounded-lg shadow-sm overflow-hidden">
       {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-xs px-4 py-2 rounded-lg ${
+              className={`max-w-xs sm:max-w-md px-3 sm:px-4 py-2 rounded-lg text-sm break-words ${
                 msg.role === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-card text-card-foreground"
@@ -118,7 +118,7 @@ export function DiagnosticChat({ onDiagnosisComplete }: DiagnosticChatProps) {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-card text-card-foreground px-4 py-2 rounded-lg">
+            <div className="bg-card text-card-foreground px-3 sm:px-4 py-2 rounded-lg text-sm">
               <span className="animate-pulse">Thinking...</span>
             </div>
           </div>
@@ -128,7 +128,7 @@ export function DiagnosticChat({ onDiagnosisComplete }: DiagnosticChatProps) {
 
       {/* Input form */}
       {!isDiagnosisComplete && (
-        <div className="border-t p-4">
+        <div className="border-t p-3 sm:p-4">
           <form onSubmit={sendMessage} className="flex gap-2">
             <input
               type="text"
@@ -136,12 +136,12 @@ export function DiagnosticChat({ onDiagnosisComplete }: DiagnosticChatProps) {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your response..."
               disabled={isLoading}
-              className="flex-1 px-3 py-2 border rounded-lg bg-background text-foreground disabled:opacity-50"
+              className="flex-1 px-3 py-2 text-base border rounded-lg bg-background text-foreground disabled:opacity-50 min-h-[44px]"
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-50 hover:opacity-90"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-50 hover:opacity-90 min-h-[44px] font-semibold text-sm sm:text-base"
             >
               Send
             </button>
