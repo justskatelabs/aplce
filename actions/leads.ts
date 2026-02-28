@@ -69,7 +69,7 @@ export async function submitLead(
     .from("leads")
     .insert(leadData as any)
     .select()
-    .single();
+    .single() as any;
 
   if (error || !lead) {
     return { success: false, error: error?.message ?? "Failed to submit lead" };
@@ -87,7 +87,7 @@ export async function submitLead(
       .eq("id", bestCompany.id);
   }
 
-  return { success: true, leadId: lead.id };
+  return { success: true, leadId: (lead as any).id };
 }
 
 export type LeadActionState = {
